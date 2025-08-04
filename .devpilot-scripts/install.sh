@@ -98,9 +98,9 @@ quickstart(){
     write_step "Getting AKS ingress information..."
     
     # Try to get the ingress IP or hostname
-    INGRESS_IP=$(kubectl -n $USER_NAMESPACE get svc store-ui-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-    INGRESS_HOSTNAME=$(kubectl -n $USER_NAMESPACE get svc store-ui-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
-    
+    INGRESS_IP=$(kubectl -n aks-istio-ingress get svc aks-istio-ingressgateway-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+    INGRESS_HOSTNAME=$(kubectl -n aks-istio-ingress get svc aks-istio-ingressgateway-external -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+
     # Use IP if available, otherwise hostname, or default to placeholder
     if [ -n "$INGRESS_IP" ]; then
       BASE_URL="http://$INGRESS_IP"
@@ -115,11 +115,11 @@ quickstart(){
     
     # Define Azure environment URLs
     STORE_URL="$BASE_URL"
-    USERS_URL="$BASE_URL/users/docs"
-    PRODUCTS_URL="$BASE_URL/products/api-docs/"
-    CART_URL="$BASE_URL/cart/swagger-ui.html"
-    SEARCH_URL="$BASE_URL/search/api/docs"
-    
+    USERS_URL="$BASE_URL/api/users/docs"
+    PRODUCTS_URL="$BASE_URL/api/products/api-docs/"
+    CART_URL="$BASE_URL/api/cart/swagger-ui.html"
+    SEARCH_URL="$BASE_URL/api/search/api/docs"
+
     ACCESS_NOTE="Use 'kubectl get svc -n $USER_NAMESPACE' to see service external IPs/hostnames if placeholders are shown."
   else
     # For local environment, use localhost with specific ports

@@ -25,3 +25,24 @@ spec:
         - name: http
           containerPort: 80
           protocol: TCP
+        env:
+        - name: REACT_APP_PRODUCTS_URL_BASE
+          valueFrom:
+            configMapKeyRef:
+              name: store-ui-configmap
+              key: REACT_APP_PRODUCTS_URL_BASE
+        - name: REACT_APP_CART_URL_BASE
+          valueFrom:
+            configMapKeyRef:
+              name: store-ui-configmap
+              key: REACT_APP_CART_URL_BASE
+        - name: REACT_APP_USERS_URL_BASE
+          valueFrom:
+            configMapKeyRef:
+              name: store-ui-configmap
+              key: REACT_APP_USERS_URL_BASE
+        - name: REACT_APP_SEARCH_URL_BASE         
+          valueFrom:
+            configMapKeyRef:
+              name: store-ui-configmap
+              key: REACT_APP_SEARCH_URL_BASE
