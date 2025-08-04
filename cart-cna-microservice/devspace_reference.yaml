@@ -1,14 +1,6 @@
 version: v2beta1
 name: devspace
 
-imports:
-  - path: "../.devpilot-scripts/devspace-pipelines.yaml"
-
-vars:
-  SERVICE_NAME: "cart"
-  K8S_MANIFEST_PATH_LOCAL: "${K8S_DIR}/infra/k8s/apps/overlays/local/cart/"
-  K8S_MANIFEST_PATH_AZURE: "${K8S_DIR}/infra/k8s/apps/overlays/azure/cart/"
-
 # This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
   # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
@@ -55,10 +47,8 @@ deployments:
 # This is a list of `dev` containers that are based on the containers created by your deployments
 dev:
   app:
-    # Search for the container that runs inside the deployment with the label `app: cart-deployment`
-    labelSelector:
-      app: cart-deployment
-    container: cart
+    # Search for the container that runs this image
+    imageSelector: cart-dev
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
     devImage: cart-dev
     # Sync files between the local filesystem and the development container
@@ -96,7 +86,7 @@ dev:
       - /app/app.jar
     ports:
       - port: "7000:7000"
-      - port: "6000:6000"         
+      - port: "6000:6000"      
 
 # Use the `commands` section to define repeatable dev workflows for this project 
 commands:
@@ -121,4 +111,4 @@ dependencies:
   ui:
     path: ../store-ui
   users-service:
-    path: ../users-cna-microservice
+    path: ../users-cna-microservice 
