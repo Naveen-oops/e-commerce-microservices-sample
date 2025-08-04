@@ -9,23 +9,48 @@ vars:
   K8S_MANIFEST_PATH_LOCAL: "${K8S_DIR}/infra/k8s/apps/overlays/local/search/"
   K8S_MANIFEST_PATH_AZURE: "${K8S_DIR}/infra/k8s/apps/overlays/azure/search/"
 
+images:
+  search:
+    image: search
+    dockerfile: ./Dockerfile
+    rebuildStrategy: always
+    context: ./
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
+  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
+  deploy:
+    run: |-
+      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all                         # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
+      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
   # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
   dev:
     run: |-
-      start_dev search
-  # Custom pipeline to run the debug server. You can run this pipeline via `devspace run-pipeline debug-server`
-  debug-server:
+      run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all    # 2. Ensure pull secrets
+      create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
+      start_dev app                # 4. Start dev mode "app" (see "dev" section)
+  debug:
     run: |-
-      echo "Running products debug server."
-      start_dev search-debug
+      start_dev app-debug          # Start dev mode "app-debug" (see "dev" section)
+
+# This is a list of `deployments` that DevSpace can create for this project
+deployments:
+  app:
+    # This deployment uses `kubectl` but you can also define `helm` deployments
+    kubectl:
+      manifests:
+        - ../infra/k8s/apps/overlays/local/search
+      kustomize: true
 
 dev:
-  search:
+  app:
     labelSelector:
       app: search-deployment
     container: search
-    devImage: "image.registry.local:5001/search:dev"
+    devImage: "ghcr.io/loft-sh/devspace-containers/javascript:18-alpine"
     sync:
       - path: ./:/app
         excludePaths:
@@ -48,7 +73,7 @@ dev:
       - name: ELASTIC_URL
         value: "http://localhost:9200/"
   # Remote Debug configuration for the search service
-  search-debug:
+  app-debug:
     labelSelector:
       app: search-deployment
     container: search
@@ -59,3 +84,19 @@ dev:
     ports:
       - port: "4000:4000"
       - port: "9230:9230"
+
+
+# Use the `commands` section to define repeatable dev workflows for this project 
+commands:
+  migrate-db:
+    command: |-
+      echo 'This is a cross-platform, shared command that can be used to codify any kind of dev task.'
+      echo 'Anyone using this project can invoke it via "devspace run migrate-db"'
+
+# Define dependencies to other projects with a devspace.yaml
+# dependencies:
+#   api:
+#     git: https://...  # Git-based dependencies
+#     tag: v1.0.0
+#   ui:
+#     path: ./ui        # Path-based dependencies (for monorepos)

@@ -9,21 +9,46 @@ vars:
   K8S_MANIFEST_PATH_LOCAL: "${K8S_DIR}/infra/k8s/apps/overlays/local/store-ui/"
   K8S_MANIFEST_PATH_AZURE: "${K8S_DIR}/infra/k8s/apps/overlays/azure/store-ui/"
 
+images:
+  store-ui:
+    image: store-ui
+    dockerfile: ./Dockerfile
+    rebuildStrategy: always
+    context: ./
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
+  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
+  deploy:
+    run: |-
+      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all                         # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
+      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
   # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
   dev:
     run: |-
-      start_dev store-ui
-  # Custom pipeline to run the debug server. You can run this pipeline via `devspace run-pipeline debug-server`
-  debug-server:
+      run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all    # 2. Ensure pull secrets
+      create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
+      start_dev app                # 4. Start dev mode "app" (see "dev" section)
+  debug:
     run: |-
-      echo "Running cart debug server."
-      start_dev store-ui-debug
+      start_dev app-debug          # Start dev mode "app-debug" (see "dev" section)
+
+
+# This is a list of `deployments` that DevSpace can create for this project
+deployments:
+  app:
+    # This deployment uses `kubectl` but you can also define `helm` deployments
+    kubectl:
+      manifests:
+        - ../infra/k8s/apps/overlays/local/store-ui
+      kustomize: true
 
 dev:
 # Development configuration for the store-ui service
 # This configuration allows you to run the store-ui service in development mode with hot reload and debugging
-  store-ui:
+  app:
     labelSelector:
       app: store-ui-deployment
     container: store-ui
@@ -71,7 +96,7 @@ dev:
         value: "http://localhost:8083/"
 
 # Remote Debug configuration for the store-ui service
-  store-ui-debug:
+  app-debug:
     labelSelector:
       app: store-ui-deployment
     container: store-ui
