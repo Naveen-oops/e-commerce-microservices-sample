@@ -338,7 +338,7 @@ commands:
     command: |
       # Initialize enhanced logging
       devspace run-pipeline enhanced-logging
-      ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure
+      ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure --dev-only
       # Source the logging functions
       source ~/.devspace/vars/logging.sh
       
@@ -395,7 +395,7 @@ commands:
       
       # Then build and push with Azure profile
       log_step "Building and pushing image to ACR: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
-      if ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure; then
+      if ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure --dev-only; then
         log_success "Image built and pushed to ACR successfully"
         log_info "Image: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
       else
