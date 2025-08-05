@@ -32,7 +32,7 @@ class TaxCalculationServiceTest {
         CartItem luxuryItem = new CartItem("lux-1", "LUX001", "Luxury Watch", ProductCategory.LUXURY, 1, 50000.0f, "INR", GSTCategory.GST_28);
 
         List<CartItem> items = Arrays.asList(medicineItem, shoesItem, luxuryItem);
-        Cart cart = new Cart("customer123", items, 0.0f, 0.0f, 0.0f, "INR");
+        Cart cart = new Cart("customer123", items, 0.0f, 0.0f, 0.0f, "INR", "standard", 0.0f);
 
         // Act
         TaxCalculationService.TaxBreakdown result = taxCalculationService.calculateTaxForCart(cart);
@@ -53,7 +53,7 @@ class TaxCalculationServiceTest {
         CartItem exemptItem = new CartItem("food-1", "FOOD001", "Rice", ProductCategory.FOOD, 5, 50.0f, "INR", GSTCategory.EXEMPT);
 
         List<CartItem> items = Arrays.asList(exemptItem);
-        Cart cart = new Cart("customer123", items, 0.0f, 0.0f, 0.0f, "INR");
+        Cart cart = new Cart("customer123", items, 0.0f, 0.0f, 0.0f, "INR", "standard", 0.0f);
 
         // Act
         TaxCalculationService.TaxBreakdown result = taxCalculationService.calculateTaxForCart(cart);
@@ -71,7 +71,7 @@ class TaxCalculationServiceTest {
     @Test
     void testCalculateTaxForCart_EmptyCart() {
         // Arrange
-        Cart cart = new Cart("customer123", Arrays.asList(), 0.0f, 0.0f, 0.0f, "INR");
+        Cart cart = new Cart("customer123", Arrays.asList(), 0.0f, 0.0f, 0.0f, "INR", "standard", 0.0f);
 
         // Act
         TaxCalculationService.TaxBreakdown result = taxCalculationService.calculateTaxForCart(cart);

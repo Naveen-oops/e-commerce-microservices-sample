@@ -29,13 +29,6 @@ pipelines:
       create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
       start_dev app-debug                # 4. Start dev mode "app" (see "dev" section)      
 
-  debug:
-    run: |-
-      run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
-      ensure_pull_secrets --all    # 2. Ensure pull secrets
-      build_images --all -t $(git describe --always)
-      create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
-      start_dev app-debug                # 4. Start dev mode "app" (see "dev" section)      
   # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
   deploy:
     run: |-
@@ -49,7 +42,6 @@ pipelines:
 # We recommend to skip image building during development (devspace dev) as much as possible
 images:
   app:
-    image: cart-dev
     image: cart-dev
     dockerfile: ./Dockerfile.dev
     context: ./
@@ -69,7 +61,6 @@ dev:
     # Search for the container that runs this image
     imageSelector: cart-dev
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
-    devImage: cart-dev
     devImage: cart-dev
     # Sync files between the local filesystem and the development container
     sync:

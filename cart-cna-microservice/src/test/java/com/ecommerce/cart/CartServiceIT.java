@@ -35,7 +35,7 @@ public class CartServiceIT {
     }
 
     private Cart getShoppingCart(String customerId, List<CartItem> items) {
-        return new Cart(customerId, items, 0, 0, 0, "$");
+        return new Cart(customerId, items, 0, 0, 0, "USD", "standard", 0.0f);
     }
 
     @Test
