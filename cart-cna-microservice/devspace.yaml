@@ -74,11 +74,11 @@ dev:
       - gitCredentials: true
     # Forward the following ports to be able access your application via localhost
     ports:
-      - port: "7000"
-      - port: "6000"
+      - port: "7000:7000"
+      - port: "6000:6000"
     # Open the following URLs once they return an HTTP status code other than 502 or 503
     open:
-      - url: http://localhost:7000
+      - url: http://localhost:7000/swagger-ui.html
 
 
   app-debug:
@@ -93,8 +93,10 @@ dev:
       - /app/app.jar
     ports:
       - port: "7000:7000"
-      - port: "6000:6000"         
-      - port: "6000:6000"         
+      - port: "6000:6000"
+    # Open the following URLs once they return an HTTP status code other than 502 or 503    
+    open:
+      - url: http://localhost:7000/swagger-ui.html        
 
 # Use the `commands` section to define repeatable dev workflows for this project 
 commands:
