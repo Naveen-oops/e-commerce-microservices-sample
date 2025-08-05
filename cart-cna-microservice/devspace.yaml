@@ -17,16 +17,11 @@ pipelines:
       run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
       ensure_pull_secrets --all    # 2. Ensure pull secrets
       build_images --all -t $(git describe --always)
-      build_images --all -t $(git describe --always)
       create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
       start_dev app                # 4. Start dev mode "app" (see "dev" section)
 
   debug:
     run: |-
-      run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
-      ensure_pull_secrets --all    # 2. Ensure pull secrets
-      build_images --all -t $(git describe --always)
-      create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
       start_dev app-debug                # 4. Start dev mode "app" (see "dev" section)      
 
   # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
@@ -34,7 +29,6 @@ pipelines:
     run: |-
       run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
       ensure_pull_secrets --all                         # 2. Ensure pull secrets
-      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
       build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
       create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
 

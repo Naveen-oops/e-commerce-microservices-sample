@@ -9,21 +9,8 @@ vars:
   K8S_MANIFEST_PATH_LOCAL: "${K8S_DIR}/infra/k8s/apps/overlays/local/store-ui/"
   K8S_MANIFEST_PATH_AZURE: "${K8S_DIR}/infra/k8s/apps/overlays/azure/store-ui/"
 
-images:
-  store-ui:
-    image: store-ui
-    dockerfile: ./Dockerfile
-    rebuildStrategy: always
-    context: ./
 # This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
-  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
-  deploy:
-    run: |-
-      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
-      ensure_pull_secrets --all                         # 2. Ensure pull secrets
-      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
-      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
   # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
   deploy:
     run: |-
@@ -36,12 +23,19 @@ pipelines:
     run: |-
       run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
       ensure_pull_secrets --all    # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
       create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
       start_dev app                # 4. Start dev mode "app" (see "dev" section)
   debug:
     run: |-
       start_dev app-debug          # Start dev mode "app-debug" (see "dev" section)
 
+images:
+  app:
+    image: store-ui
+    dockerfile: ./Dockerfile
+    rebuildStrategy: always
+    context: ./
 
 # This is a list of `deployments` that DevSpace can create for this project
 deployments:

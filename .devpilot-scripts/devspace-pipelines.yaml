@@ -5,9 +5,7 @@ localRegistry:
   enabled: false
 
 vars:
-  REGISTRY: "image.registry.local:5001"
-  AZURE_REGISTRY:
-    default: "kubecon.azurecr.io"
+  REGISTRY: "kubecon.azurecr.io"
   IMAGE_TAG: "latest"
   # Use sanitized username as default namespace
   NAMESPACE:
@@ -17,15 +15,6 @@ vars:
 
 # Define reusable pipelines to reduce duplication
 pipelines:
-  # Build development image
-  build-dev: 
-    run: |-
-      build_images dev --tag dev
-  
-  # Build production image
-  build-prod: 
-    run: |-
-      build_images prod --tag ${IMAGE_TAG}
   # Enhanced logging functions
   enhanced-logging:
     run: |
@@ -343,202 +332,117 @@ pipelines:
 # Standardized commands for consistency across all microservices
 commands:
   # Development commands
-  dev:
+  start:
     command: devspace use namespace ${NAMESPACE} && devspace dev --skip-build --skip-deploy
     description: "Start development mode with hot reload"
-   # Development commands
-  develop:
-    command: devspace use namespace ${NAMESPACE} && devspace run dev
-    description: "Start the cart service in development mode with hot reload and debugging support."
   debug:
     command: devspace use namespace ${NAMESPACE} && devspace run-pipeline debug-server
     description: "Attach to the debug server for remote debugging. Does not modify the application, but allows you to debug it remotely."
   stop:
-    command: devspace use namespace ${NAMESPACE} && devspace purge
-    description: "Stop the cart service and clean up resources."
+    command: devspace use namespace ${NAMESPACE} && devspace reset pods
+    description: "Stop the dev or debug service and clean up pods."
   # Core deployment commands  
-  deploy:
+  deploy-aks:
     command: |
-      # Check if Azure profile is specified
-      if [[ "$*" == *"--profile azure"* ]]; then
-        # Initialize enhanced logging
-        devspace run-pipeline enhanced-logging
-        ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure
-        # Source the logging functions
-        source ~/.devspace/vars/logging.sh
-        
-        log_phase "STARTING AZURE DEPLOYMENT FOR ${SERVICE_NAME}"
-        
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        log_step "Setting environment variables for Azure deployment"
-        echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
-        
-        # Run pipelines with better feedback
-        log_step "Preparing Kubernetes manifests"
-        devspace run-pipeline prepare-manifests
-        
-        log_step "Replacing image tags to dev for development deployment"
-        devspace run-pipeline replace-image-tags-dev
-        
-        log_step "Applying Kubernetes manifests"
-        devspace run-pipeline apply-manifests
-        
-        log_step "Verifying deployment"
-        devspace run-pipeline verify-deployment
-        
-        log_step "Cleaning up temporary files"
-        devspace run-pipeline cleanup
-        
-        log_phase "DEPLOYMENT SUMMARY"
-        log_info "Service: ${SERVICE_NAME}"
-        log_info "Namespace: ${NAMESPACE}"
-        log_info "Environment: Azure"
-        
-        if [[ "${SERVICE_NAME}" == "store-ui" ]]; then
-          log_info "Access URL: http://your-istio-gateway-ip"
-          log_step "To get the gateway IP, run: kubectl get svc -n aks-istio-ingress"
-        fi
-        
-        log_success "✨ Azure deployment completed successfully! ✨"
-      else
-        # Local deployment
-        ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME --dev-only
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        echo "export ENV_TYPE=local" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_LOCAL}" > ~/.devspace/vars/k8s_path.env
-        
-        # Run pipelines
-        devspace run-pipeline prepare-manifests
-        devspace run-pipeline replace-image-tags-dev
-        devspace run-pipeline apply-manifests
-        devspace run-pipeline cleanup
-      fi
-    description: "Deploy to environment (use --profile azure for Azure deployment)"
-  
-  build:
-    command: |
-      # Check if Azure profile is specified
-      if [[ "$*" == *"--profile azure"* ]]; then
-        # Initialize enhanced logging
-        devspace run-pipeline enhanced-logging
-        
-        # Source the logging functions
-        source ~/.devspace/vars/logging.sh
-        
-        log_phase "BUILDING IMAGE FOR AZURE CONTAINER REGISTRY"
-        
-        # First login to Azure Container Registry
-        # log_step "Authenticating with Azure Container Registry"
-        # devspace run-pipeline azure-acr-login
-        
-        # Then build and push with Azure profile
-        log_step "Building and pushing image to ACR: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
-        if ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure; then
-          log_success "Image built and pushed to ACR successfully"
-          log_info "Image: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
-        else
-          log_error "Failed to build or push image to ACR"
-          exit 1
-        fi
-        
-        log_success "✨ Azure image build completed successfully! ✨"
-      else
-        # Local build
-        ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME --dev-only
-      fi
-    description: "Build image (use --profile azure for Azure Container Registry)"
-  
-  rollback:
-    command: |
+      # Initialize enhanced logging
+      devspace run-pipeline enhanced-logging
+      ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure
+      # Source the logging functions
+      source ~/.devspace/vars/logging.sh
+      
+      log_phase "STARTING AZURE DEPLOYMENT FOR ${SERVICE_NAME}"
+      
       mkdir -p ~/.devspace/vars
       # Set environment variables for pipelines
-      echo "export ENV_TYPE=local" > ~/.devspace/vars/env_type.env
-      echo "export K8S_PATH=${K8S_MANIFEST_PATH_LOCAL}" > ~/.devspace/vars/k8s_path.env
+      log_step "Setting environment variables for Azure deployment"
+      echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
+      echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
       
-      # Run pipelines - NOTE: No replace-image-tags-dev step, so uses 'latest' tags
+      # Run pipelines with better feedback
+      log_step "Preparing Kubernetes manifests"
       devspace run-pipeline prepare-manifests
+      
+      log_step "Replacing image tags to dev for development deployment"
+      devspace run-pipeline replace-image-tags-dev
+      
+      log_step "Applying Kubernetes manifests"
       devspace run-pipeline apply-manifests
+      
+      log_step "Verifying deployment"
+      devspace run-pipeline verify-deployment
+      
+      log_step "Cleaning up temporary files"
       devspace run-pipeline cleanup
-    description: "Rollback to latest stable images (uses 'latest' tag instead of 'dev')"
+      
+      log_phase "DEPLOYMENT SUMMARY"
+      log_info "Service: ${SERVICE_NAME}"
+      log_info "Namespace: ${NAMESPACE}"
+      log_info "Environment: Azure"
+      
+      if [[ "${SERVICE_NAME}" == "store-ui" ]]; then
+        log_info "Access URL: http://your-istio-gateway-ip"
+        log_step "To get the gateway IP, run: kubectl get svc -n aks-istio-ingress"
+      fi
+      
+      log_success "✨ Azure deployment completed successfully! ✨"
+    description: "Deploy to AKS environment)"
   
-  purge:
+  build-push-acr:
     command: |
-      # Check if Azure profile is specified
-      if [[ "$*" == *"--profile azure"* ]]; then
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
-        # Run pipelines
-        devspace run-pipeline prepare-manifests
-        devspace run-pipeline delete-manifests
-        devspace run-pipeline cleanup
+      # Initialize enhanced logging
+      devspace run-pipeline enhanced-logging
+      
+      # Source the logging functions
+      source ~/.devspace/vars/logging.sh
+      
+      log_phase "BUILDING IMAGE FOR AZURE CONTAINER REGISTRY"
+      
+      # First login to Azure Container Registry
+      # log_step "Authenticating with Azure Container Registry"
+      # devspace run-pipeline azure-acr-login
+      
+      # Then build and push with Azure profile
+      log_step "Building and pushing image to ACR: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
+      if ../.devpilot-scripts/build-and-push-images.sh -s $SERVICE_NAME -p azure; then
+        log_success "Image built and pushed to ACR successfully"
+        log_info "Image: ${AZURE_REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
       else
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        echo "export ENV_TYPE=local" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_LOCAL}" > ~/.devspace/vars/k8s_path.env
+        log_error "Failed to build or push image to ACR"
+        exit 1
       fi
-    description: "Remove deployment from cluster (use --profile azure for Azure)"
+      
+      log_success "✨ Azure image build completed successfully! ✨"
+    description: "Build and push image to Azure Container Registry"
 
-  delete:
+  rollback-aks:
     command: |
-      # Check if Azure profile is specified
-      if [[ "$*" == *"--profile azure"* ]]; then
-        # Initialize enhanced logging
-        devspace run-pipeline enhanced-logging
-        
-        # Source the logging functions
-        source ~/.devspace/vars/logging.sh
-        
-        log_phase "DELETING DEPLOYMENT FROM AZURE ENVIRONMENT"
-        
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
-        
-        # Run pipelines with better feedback
-        log_step "Preparing Kubernetes manifests for deletion"
-        devspace run-pipeline prepare-manifests
-        
-        log_step "Deleting Kubernetes resources using kubectl delete -k"
-        devspace run-pipeline delete-k8s-manifests
-        
-        log_step "Cleaning up temporary files"
-        devspace run-pipeline cleanup
-        
-        log_phase "DELETION SUMMARY"
-        log_info "Service: ${SERVICE_NAME}"
-        log_info "Namespace: ${NAMESPACE}"
-        log_info "Environment: Azure"
-        
-        log_success "✨ Azure deployment deletion completed successfully! ✨"
-      else
-        # Local deletion
-        mkdir -p ~/.devspace/vars
-        # Set environment variables for pipelines
-        echo "export ENV_TYPE=local" > ~/.devspace/vars/env_type.env
-        echo "export K8S_PATH=${K8S_MANIFEST_PATH_LOCAL}" > ~/.devspace/vars/k8s_path.env
-        
-        # Run pipelines
-        devspace run-pipeline prepare-manifests
-        devspace run-pipeline delete-k8s-manifests
-        devspace run-pipeline cleanup
-      fi
-    description: "Delete deployment using kubectl delete -k (use --profile azure for Azure environment)"
-
-# Azure ACR profile for Kubernetes
-profiles:
-  - name: azure
-    description: "Azure ACR for Kubernetes deployment"
-    patches:
-      - op: replace
-        path: vars.REGISTRY
-        value: ${AZURE_REGISTRY}
-    activation:
-      - vars:
-          DEVSPACE_PROFILE: "azure"
+      # Initialize enhanced logging
+      devspace run-pipeline enhanced-logging
+      
+      # Source the logging functions
+      source ~/.devspace/vars/logging.sh
+      
+      log_phase "DELETING DEPLOYMENT FROM AZURE ENVIRONMENT"
+      
+      mkdir -p ~/.devspace/vars
+      # Set environment variables for pipelines
+      echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
+      echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
+      
+      # Run pipelines with better feedback
+      log_step "Preparing Kubernetes manifests for deletion"
+      devspace run-pipeline prepare-manifests
+      
+      log_step "Deleting Kubernetes resources using kubectl delete -k"
+      devspace run-pipeline delete-k8s-manifests
+      
+      log_step "Cleaning up temporary files"
+      devspace run-pipeline cleanup
+      
+      log_phase "DELETION SUMMARY"
+      log_info "Service: ${SERVICE_NAME}"
+      log_info "Namespace: ${NAMESPACE}"
+      log_info "Environment: Azure"
+      
+      log_success "✨ Azure deployment deletion completed successfully! ✨"
+    description: "Delete deployment in AKS"

@@ -15,12 +15,3 @@ spec:
       - name: store-ui
         image: store-ui
         imagePullPolicy: Never
-        env:
-        - name: REACT_APP_PRODUCTS_URL_BASE
-          value : http://localhost:8081/
-        - name: REACT_APP_CART_URL_BASE
-          value : http://localhost:8080/
-        - name: REACT_APP_USERS_URL_BASE
-          value : http://localhost:8083/
-        - name: REACT_APP_SEARCH_URL_BASE
-          value : http://localhost:8082/
