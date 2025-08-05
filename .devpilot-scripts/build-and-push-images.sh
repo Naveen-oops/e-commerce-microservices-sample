@@ -175,32 +175,44 @@ build_and_push_image() {
   write_step "Building $description image for $name..."
   write_progress "Using $dockerfile in $path"
   
-  # Build the image
+  # Build the image with multi-platform support
   local image_tag="$name:$tag_suffix"
-  highlight_boxed_cmd "docker build -f $dockerfile -t $image_tag ."
   
-  if docker build -f "$dockerfile" -t "$image_tag" .; then
-    write_success "Built $image_tag"
-    
-    # Tag the image for registry
-    local registry_image="$registry_url/$image_tag"
-    write_step "Tagging image for registry..."
-    highlight_boxed_cmd "docker tag $image_tag $registry_image"
-    docker tag "$image_tag" "$registry_image"
-    write_success "Tagged as $registry_image"
-    
-    # Push to registry
-    write_step "Pushing to registry..."
-    highlight_boxed_cmd "docker push $registry_image"
-    if docker push "$registry_image"; then
-      write_success "Successfully pushed $registry_image"
-      return 0
+  # For Azure/cloud environments, build for linux/amd64 platform
+  if [[ "$ENVIRONMENT" == "azure" || "$ENVIRONMENT" == "aws" ]]; then
+    highlight_boxed_cmd "docker buildx build --platform linux/amd64 -f $dockerfile -t $image_tag --load ."
+    if docker buildx build --platform linux/amd64 -f "$dockerfile" -t "$image_tag" --load .; then
+      write_success "Built $image_tag for linux/amd64 platform"
     else
-      write_error "Failed to push $name $description: Docker push failed"
+      write_error "Failed to build $name $description: Docker buildx failed"
       return 1
     fi
   else
-    write_error "Failed to build $name $description: Docker build failed"
+    # For local environment, use regular build
+    highlight_boxed_cmd "docker build -f $dockerfile -t $image_tag ."
+    if docker build -f "$dockerfile" -t "$image_tag" .; then
+      write_success "Built $image_tag"
+    else
+      write_error "Failed to build $name $description: Docker build failed"
+      return 1
+    fi
+  fi
+  
+  # Tag the image for registry
+  local registry_image="$registry_url/$image_tag"
+  write_step "Tagging image for registry..."
+  highlight_boxed_cmd "docker tag $image_tag $registry_image"
+  docker tag "$image_tag" "$registry_image"
+  write_success "Tagged as $registry_image"
+  
+  # Push to registry
+  write_step "Pushing to registry..."
+  highlight_boxed_cmd "docker push $registry_image"
+  if docker push "$registry_image"; then
+    write_success "Successfully pushed $registry_image"
+    return 0
+  else
+    write_error "Failed to push $name $description: Docker push failed"
     return 1
   fi
 }
@@ -221,6 +233,23 @@ if [ "$ENVIRONMENT" == "local" ]; then
   else
     write_success "Local registry is running at $registry_url"
   fi
+fi
+
+# Setup Docker buildx for multi-platform builds (Azure/AWS environments)
+if [[ "$ENVIRONMENT" == "azure" || "$ENVIRONMENT" == "aws" ]]; then
+  write_phase "Setting up Docker Buildx for Multi-Platform Builds"
+  
+  # Create buildx builder if it doesn't exist
+  if ! docker buildx ls | grep -q "multiplatform"; then
+    write_step "Creating multiplatform builder..."
+    docker buildx create --name multiplatform --driver docker-container --bootstrap
+    write_success "Created multiplatform builder"
+  fi
+  
+  # Use the multiplatform builder
+  write_step "Using multiplatform builder..."
+  docker buildx use multiplatform
+  write_success "Switched to multiplatform builder"
 fi
 
 # Process each service

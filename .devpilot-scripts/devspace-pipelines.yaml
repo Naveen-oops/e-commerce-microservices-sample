@@ -132,14 +132,6 @@ pipelines:
       
       log_phase "AUTHENTICATING WITH AZURE"
       
-      log_step "Logging into Azure..."
-      if az login --output none; then
-        log_success "Successfully logged into Azure"
-      else
-        log_error "Failed to log into Azure"
-        exit 1
-      fi
-      
       log_step "Logging into Azure Container Registry using Azure identity..."
       if az acr login --name kubecondemo; then
         log_success "Successfully logged into ACR"
@@ -397,7 +389,7 @@ commands:
       
       log_phase "BUILDING IMAGE FOR AZURE CONTAINER REGISTRY"
       
-      # First login to Azure Container Registry
+      # # First login to Azure Container Registry
       # log_step "Authenticating with Azure Container Registry"
       # devspace run-pipeline azure-acr-login
       
@@ -413,6 +405,39 @@ commands:
       
       log_success "✨ Azure image build completed successfully! ✨"
     description: "Build and push image to Azure Container Registry"
+
+  purge-aks:
+    command: |
+      # Initialize enhanced logging
+      devspace run-pipeline enhanced-logging
+      
+      # Source the logging functions
+      source ~/.devspace/vars/logging.sh
+      
+      log_phase "DELETING DEPLOYMENT FROM AZURE ENVIRONMENT"
+      
+      mkdir -p ~/.devspace/vars
+      # Set environment variables for pipelines
+      echo "export ENV_TYPE=azure" > ~/.devspace/vars/env_type.env
+      echo "export K8S_PATH=${K8S_MANIFEST_PATH_AZURE}" > ~/.devspace/vars/k8s_path.env
+      
+      # Run pipelines with better feedback
+      log_step "Preparing Kubernetes manifests for deletion"
+      devspace run-pipeline prepare-manifests
+      
+      log_step "Deleting Kubernetes resources using kubectl delete -k"
+      devspace run-pipeline delete-k8s-manifests
+      
+      log_step "Cleaning up temporary files"
+      devspace run-pipeline cleanup
+      
+      log_phase "DELETION SUMMARY"
+      log_info "Service: ${SERVICE_NAME}"
+      log_info "Namespace: ${NAMESPACE}"
+      log_info "Environment: Azure"
+      
+      log_success "✨ Azure deployment deletion completed successfully! ✨"
+    description: "Delete deployment in AKS"
 
   rollback-aks:
     command: |
