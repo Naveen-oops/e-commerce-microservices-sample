@@ -75,6 +75,7 @@ dev:
     # Forward the following ports to be able access your application via localhost
     ports:
       - port: "7000"
+      - port: "6000"
     # Open the following URLs once they return an HTTP status code other than 502 or 503
     open:
       - url: http://localhost:7000
